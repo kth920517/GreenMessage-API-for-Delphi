@@ -88,8 +88,7 @@ begin
         end;
       end;
     end;
-  end else
-    raise Exception.Create(oResponse.RSLT_MSG);
+  end;
 end;
 
 end.

@@ -75,8 +75,6 @@ uses
 
 class function TGreenMessageAPI.Send<TRequest, TResponse>(
   const ARequest: TRequest; var AResponse: TResponse; const AMethod: TRestMethod): Boolean;
-const
-  ERROR_RESPONSE = '{"RSLT_MSG":"%s"}';
 var
   sURL: string;
   sJSONData: string;
@@ -86,9 +84,6 @@ var
 
   oRequestStream: TStringStream;
   oResponseStream: TStringStream;
-
-  sResponse: string;
-  sErrorMessage: string;
 begin
   with TJsonSerializer.Create do begin
     try
@@ -122,72 +117,33 @@ begin
       IdHTTP.Response.Clear;
       IdHTTP.Response.CustomHeaders.Clear;
 
-      sResponse := '';
-      sErrorMessage := '';
+      sURL := GREEN_MESSAGE_URL + '?JSONData=' + TURI.URLEncode(sJSONData);
 
-      try
-        sURL := GREEN_MESSAGE_URL + '?JSONData=' + TURI.URLEncode(sJSONData);
-
-        case AMethod of
-          rmGET: begin
-            IdHTTP.Request.ContentType := 'application/json;charset=UTF-8';
-            IdHTTP.Get(sURL, oResponseStream);
-          end;
-
-          rmPOST: begin
-            IdHTTP.Request.ContentType := 'application/x-www-form-urlencoded';
-            IdHTTP.Post(sURL, oRequestStream, oResponseStream);
-          end;
-
-          rmPATCH: ;
-          rmPUT: ;
-          rmDELETE: ;
-        end;
-      except
-        on E: EIdHTTPProtocolException do begin
-          sErrorMessage := E.ErrorMessage;
+      case AMethod of
+        rmGET: begin
+          IdHTTP.Request.ContentType := 'application/json;charset=UTF-8';
+          IdHTTP.Get(sURL, oResponseStream);
         end;
 
-        on E: Exception do begin
-          sErrorMessage := IfThen(
-                             sErrorMessage.IsEmpty,
-                             E.Message,
-                             sErrorMessage + sLineBreak + E.Message
-                           );
+        rmPOST: begin
+          IdHTTP.Request.ContentType := 'application/x-www-form-urlencoded';
+          IdHTTP.Post(sURL, oRequestStream, oResponseStream);
+        end;
+
+        rmPATCH: ;
+        rmPUT: ;
+        rmDELETE: ;
+      end;
+		
+      with TJsonSerializer.Create do begin
+        try
+          AResponse := DeSerialize<TResponse>(oResponseStream.DataString);
+        finally
+          Free;
         end;
       end;
 
-      sResponse := oResponseStream.DataString;
-
-      if IdHTTP.Response.ResponseCode in [200..209] then begin
-
-        with TJsonSerializer.Create do begin
-          try
-            AResponse := DeSerialize<TResponse>(sResponse);
-          finally
-            Free;
-          end;
-        end;
-
-        Result := True;
-      end else begin
-        sResponse := IfThen(
-                       sResponse.IsEmpty,
-                       sErrorMessage,
-                       sResponse + sLineBreak + sErrorMessage
-                     );
-        sResponse := sResponse.Replace('"', '\"');
-
-        with TJsonSerializer.Create do begin
-          try
-            AResponse := DeSerialize<TResponse>(
-              Format(ERROR_RESPONSE, [sResponse])
-            );
-          finally
-            Free;
-          end;
-        end;
-      end;
+      Result := True;
     finally
       if IdHTTP.Connected then
         IdHTTP.Disconnect;

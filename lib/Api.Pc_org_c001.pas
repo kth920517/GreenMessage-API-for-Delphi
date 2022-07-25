@@ -122,8 +122,7 @@ begin
 
     if Result.isSuccessful then
       Result.Data.USER_NO := oResponse.RESP_DATA.USER_NO;
-  end else
-    raise Exception.Create(oResponse.RSLT_MSG);
+  end;
 end;
 
 end.

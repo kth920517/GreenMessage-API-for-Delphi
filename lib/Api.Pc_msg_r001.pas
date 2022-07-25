@@ -90,8 +90,7 @@ begin
     Result.ResultMessage := oResponse.RSLT_MSG;
 
     Result.Data := oResponse.RESP_DATA;
-  end else
-    raise Exception.Create(oResponse.RSLT_MSG);
+  end;
 end;
 
 end.
